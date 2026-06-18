@@ -2,24 +2,58 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
 const slugify = require("slugify");
+const { v2: cloudinary } = require("cloudinary");
 const requireAuth = require("../middleware/auth");
 const { AdminUser, Product, PageContent, QuoteRequest, Enquiry, MediaAsset } = require("../models");
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, "..", "..", "uploads");
+const useCloudinary = Boolean(process.env.CLOUDINARY_URL);
 
-const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = slugify(path.basename(file.originalname, ext), { lower: true, strict: true });
-    cb(null, `${Date.now()}-${base}${ext}`);
+if (!useCloudinary && !fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+if (useCloudinary) {
+  cloudinary.config({ secure: true });
+}
+
+const upload = multer({
+  storage: useCloudinary ? multer.memoryStorage() : multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      const base = slugify(path.basename(file.originalname, ext), { lower: true, strict: true });
+      cb(null, `${Date.now()}-${base}${ext}`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) return cb(new Error("Only image uploads are allowed"));
+    return cb(null, true);
   }
 });
 
-const upload = multer({ storage });
+function uploadToCloudinary(file) {
+  return new Promise((resolve, reject) => {
+    const publicId = slugify(path.basename(file.originalname, path.extname(file.originalname)), { lower: true, strict: true });
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "jd2-meditech",
+        public_id: `${Date.now()}-${publicId}`,
+        resource_type: "image"
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        return resolve(result);
+      }
+    );
+    stream.end(file.buffer);
+  });
+}
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -68,17 +102,35 @@ router.use("/quotes", crud(QuoteRequest));
 router.use("/enquiries", crud(Enquiry));
 
 router.post("/media", upload.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "Image file is required" });
-  const asset = await MediaAsset.create({
-    title: req.body.title || req.file.originalname,
-    filename: req.file.filename,
-    url: `/uploads/${req.file.filename}`,
-    mimeType: req.file.mimetype,
-    size: req.file.size,
-    altText: req.body.altText || "",
-    folder: "uploads"
-  });
-  res.status(201).json(asset);
+  try {
+    if (!req.file) return res.status(400).json({ message: "Image file is required" });
+    if (useCloudinary) {
+      const result = await uploadToCloudinary(req.file);
+      const asset = await MediaAsset.create({
+        title: req.body.title || req.file.originalname,
+        filename: result.public_id,
+        url: result.secure_url,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        altText: req.body.altText || "",
+        folder: "cloudinary"
+      });
+      return res.status(201).json(asset);
+    }
+
+    const asset = await MediaAsset.create({
+      title: req.body.title || req.file.originalname,
+      filename: req.file.filename,
+      url: `/uploads/${req.file.filename}`,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      altText: req.body.altText || "",
+      folder: "uploads"
+    });
+    return res.status(201).json(asset);
+  } catch (error) {
+    return res.status(500).json({ message: "Image upload failed", detail: error.message });
+  }
 });
 
 router.get("/media", async (req, res) => res.json(await MediaAsset.findAll({ order: [["createdAt", "DESC"]] })));
