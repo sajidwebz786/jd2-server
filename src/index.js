@@ -31,6 +31,19 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.get("/api/health", (req, res) => res.json({ status: "ok", service: "jd2-server" }));
+app.post("/api/setup/bootstrap", async (req, res) => {
+  if (!process.env.SETUP_SECRET) {
+    return res.status(404).json({ message: "Setup endpoint is disabled" });
+  }
+
+  const providedSecret = req.headers["x-setup-secret"];
+  if (providedSecret !== process.env.SETUP_SECRET) {
+    return res.status(403).json({ message: "Invalid setup secret" });
+  }
+
+  await bootstrapDefaults();
+  return res.json({ message: "Bootstrap complete" });
+});
 app.use("/api", publicRoutes);
 app.use("/api/admin", adminRoutes);
 
