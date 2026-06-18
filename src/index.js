@@ -15,18 +15,26 @@ const configuredOrigins = [
 ].filter(Boolean).flatMap((value) => value.split(",").map((origin) => origin.trim()).filter(Boolean));
 const allowedOrigins = new Set([
   ...configuredOrigins,
+  "https://jd2meditechpvtltd.com",
+  "https://www.jd2meditechpvtltd.com",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174"
 ]);
 
-app.use(cors({
+const corsOptions = {
   origin(origin, callback) {
     if (!origin || allowedOrigins.has(origin)) return callback(null, true);
     return callback(new Error(`CORS blocked origin: ${origin}`));
-  }
-}));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-setup-secret"],
+  credentials: false
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
@@ -46,6 +54,16 @@ app.post("/api/setup/bootstrap", async (req, res) => {
 });
 app.use("/api", publicRoutes);
 app.use("/api/admin", adminRoutes);
+
+app.use((error, req, res, next) => {
+  if (error.message?.startsWith("CORS blocked origin")) {
+    return res.status(403).json({
+      message: error.message,
+      allowedOrigins: Array.from(allowedOrigins)
+    });
+  }
+  return next(error);
+});
 
 sequelize.authenticate()
   .then(() => sequelize.sync({ alter: true }))
