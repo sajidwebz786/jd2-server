@@ -1,5 +1,6 @@
 const { Sequelize } = require("sequelize");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env") });
 
 const isProduction = process.env.NODE_ENV === "production";
 const useSsl = process.env.DB_SSL === "true" || isProduction || Boolean(process.env.RENDER);
@@ -26,6 +27,22 @@ if (!process.env.DATABASE_URL) {
     );
   }
 }
+
+function assertReachableRenderHost(connectionValue) {
+  if (!connectionValue || process.env.RENDER) return;
+  const hostname = connectionValue.includes("://")
+    ? new URL(connectionValue).hostname
+    : connectionValue;
+
+  if (hostname.startsWith("dpg-") && !hostname.includes(".")) {
+    throw new Error(
+      `Render internal database host "${hostname}" is only reachable from Render. ` +
+      "Run the seed on Render, or use Render's External Database URL for local seeding."
+    );
+  }
+}
+
+assertReachableRenderHost(process.env.DATABASE_URL || process.env.DB_HOST);
 
 const sequelize = process.env.DATABASE_URL
   ? new Sequelize(process.env.DATABASE_URL, commonOptions)
