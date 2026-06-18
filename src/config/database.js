@@ -20,7 +20,10 @@ const commonOptions = {
 if (!process.env.DATABASE_URL) {
   const missing = ["DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST"].filter((key) => !process.env[key]);
   if (missing.length) {
-    throw new Error(`Missing database environment variables: ${missing.join(", ")}. Set DATABASE_URL or all DB_* variables.`);
+    throw new Error(
+      `Missing database environment variables: ${missing.join(", ")}. ` +
+      "Create jd2-server/.env for local development, or set DATABASE_URL in Render."
+    );
   }
 }
 

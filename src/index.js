@@ -3,13 +3,18 @@ const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 const { sequelize } = require("./models");
+const bootstrapDefaults = require("./bootstrap");
 const publicRoutes = require("./routes/public");
 const adminRoutes = require("./routes/admin");
 
 const app = express();
 const port = Number(process.env.PORT || 5000);
+const configuredOrigins = [
+  process.env.CLIENT_URL,
+  process.env.ALLOWED_ORIGINS
+].filter(Boolean).flatMap((value) => value.split(",").map((origin) => origin.trim()).filter(Boolean));
 const allowedOrigins = new Set([
-  process.env.CLIENT_URL || "http://localhost:5173",
+  ...configuredOrigins,
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",
@@ -31,6 +36,7 @@ app.use("/api/admin", adminRoutes);
 
 sequelize.authenticate()
   .then(() => sequelize.sync({ alter: true }))
+  .then(() => bootstrapDefaults())
   .then(() => {
     app.listen(port, () => console.log(`JD2 API running on http://localhost:${port}`));
   })
