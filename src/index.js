@@ -15,6 +15,8 @@ const configuredOrigins = [
 ].filter(Boolean).flatMap((value) => value.split(",").map((origin) => origin.trim()).filter(Boolean));
 const allowedOrigins = new Set([
   ...configuredOrigins,
+  "https://jd2meditechpvtltd.onrender.com",
+  "https://jd2-server.onrender.com",
   "https://jd2meditechpvtltd.com",
   "https://www.jd2meditechpvtltd.com",
   "http://localhost:5173",
