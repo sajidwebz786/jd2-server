@@ -7,7 +7,7 @@ const path = require("path");
 const slugify = require("slugify");
 const { v2: cloudinary } = require("cloudinary");
 const requireAuth = require("../middleware/auth");
-const { AdminUser, Product, PageContent, QuoteRequest, Enquiry, MediaAsset } = require("../models");
+const { AdminUser, Category, Product, PageContent, QuoteRequest, Enquiry, MediaAsset } = require("../models");
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, "..", "..", "uploads");
@@ -97,6 +97,7 @@ function crud(model) {
 }
 
 router.use("/products", crud(Product));
+router.use("/categories", crud(Category));
 router.use("/content", crud(PageContent));
 router.use("/quotes", crud(QuoteRequest));
 router.use("/enquiries", crud(Enquiry));

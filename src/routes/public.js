@@ -1,5 +1,5 @@
 const express = require("express");
-const { Product, PageContent, QuoteRequest, Enquiry } = require("../models");
+const { Category, Product, PageContent, QuoteRequest, Enquiry } = require("../models");
 
 const router = express.Router();
 
@@ -8,6 +8,14 @@ router.get("/products", async (req, res) => {
   if (req.query.category) where.category = req.query.category;
   const products = await Product.findAll({ where, order: [["sortOrder", "ASC"], ["name", "ASC"]] });
   res.json(products);
+});
+
+router.get("/categories", async (req, res) => {
+  const categories = await Category.findAll({
+    where: { active: true },
+    order: [["sortOrder", "ASC"], ["label", "ASC"]]
+  });
+  res.json(categories);
 });
 
 router.get("/content", async (req, res) => {

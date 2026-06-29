@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
-const { AdminUser, Product, PageContent } = require("./models");
-const { products, content } = require("./seedData");
+const { AdminUser, Category, Product, PageContent } = require("./models");
+const { categories, products, content } = require("./seedData");
 
 async function bootstrapDefaults() {
   const email = process.env.ADMIN_EMAIL;
@@ -17,6 +17,10 @@ async function bootstrapDefaults() {
   });
   if (!created) {
     await admin.update({ passwordHash });
+  }
+
+  for (const category of categories) {
+    await Category.findOrCreate({ where: { key: category.key }, defaults: category });
   }
 
   for (const product of products) {

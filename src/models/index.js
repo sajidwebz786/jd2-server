@@ -20,6 +20,15 @@ const Product = sequelize.define("Product", {
   sortOrder: { type: DataTypes.INTEGER, defaultValue: 0 }
 });
 
+const Category = sequelize.define("Category", {
+  key: { type: DataTypes.STRING, allowNull: false, unique: true },
+  label: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT },
+  imageUrl: { type: DataTypes.STRING },
+  active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  sortOrder: { type: DataTypes.INTEGER, defaultValue: 0 }
+});
+
 const PageContent = sequelize.define("PageContent", {
   page: { type: DataTypes.STRING, allowNull: false },
   section: { type: DataTypes.STRING, allowNull: false },
@@ -71,6 +80,7 @@ const MediaAsset = sequelize.define("MediaAsset", {
 module.exports = {
   sequelize,
   AdminUser,
+  Category,
   Product,
   PageContent,
   QuoteRequest,

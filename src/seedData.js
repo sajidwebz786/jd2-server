@@ -1,55 +1,47 @@
+const categories = [
+  { key: "patient-monitor", label: "Patient Monitor", description: "Monitoring systems for ICU, OT, and emergency care.", imageUrl: "/images/equipment/device1.jpg", sortOrder: 1 },
+  { key: "radiology", label: "Radiology", description: "Mobile and fixed imaging systems for diagnostic departments.", imageUrl: "/images/defibs/AgfaGEAMXMobileX-RaySystems.jpg", sortOrder: 2 },
+  { key: "hospital-furniture", label: "Hospital Furniture", description: "Beds, transfer support, ICU support, and clinical furniture.", imageUrl: "/images/section3.jpg", sortOrder: 3 },
+  { key: "sterility-disinfection", label: "Sterility & Disinfection", description: "Autoclaves, sterilizers, and CSSD support products.", imageUrl: "/images/section5.jpg", sortOrder: 4 },
+  { key: "cardiology", label: "Cardiology", description: "ECG, stress test, and cardiac response equipment.", imageUrl: "/images/defibs/defebrillator2.jpg", sortOrder: 5 },
+  { key: "anesthesia", label: "Anesthesia", description: "Anaesthesia workstations and operation theatre support.", imageUrl: "/images/equipment/device10.jpg", sortOrder: 6 },
+  { key: "ventilators", label: "Ventilators", description: "Ventilation support for critical care and transport.", imageUrl: "/images/ventils/Hamilton-Ventillator.jpg", sortOrder: 7 },
+  { key: "respiratory-care", label: "Respiratory Care", description: "Oxygen, CPAP, BPAP, and respiratory therapy systems.", imageUrl: "/images/ventils/portable-ventilator.jpg", sortOrder: 8 },
+  { key: "defibrillators", label: "Defibrillators", description: "Emergency cardiac response equipment for hospitals and clinics.", imageUrl: "/images/defibs/Meditech Defibrillator monitor Defi 9.jpg", sortOrder: 9 },
+  { key: "ortho-implants", label: "Ortho Implants", description: "Spine, trauma, plates, screws, and fixation systems.", imageUrl: "/images/ortho-implants/CapLOX II Pedicle Screw System.jpg", sortOrder: 10 }
+];
+
 const products = [
-  ["Hamilton Ventilator", "ventilators", "Advanced ICU ventilation with multiple modes and monitoring.", "/images/ventils/Hamilton-Ventillator.jpg", true],
-  ["Portable Ventilator", "ventilators", "Compact respiratory support for transport, emergency, and mobile ICU use.", "/images/ventils/portable-ventilator.jpg", true],
-  ["Infant Incubator", "ventilators", "Temperature controlled neonatal intensive care system.", "/images/ventils/Infant Incubator - Yanko Design.jpg", false],
-  ["Samsung Ventilator System", "ventilators", "Advanced monitoring platform for critical care environments.", "/images/ventils/Samsung sonar.jpg", false],
-  ["Defibrillator Monitor Defi 9", "defibrillators", "Professional defibrillator with integrated patient monitoring.", "/images/defibs/Meditech Defibrillator monitor Defi 9.jpg", true],
-  ["Philips AED", "defibrillators", "Reliable automated external defibrillator for emergency response.", "/images/defibs/CalmedEquipmentNewPhilipsAEDs.jpg", true],
-  ["Compact Defibrillator", "defibrillators", "Emergency cardiac care device for hospitals and clinics.", "/images/defibs/defebrillator2.jpg", false],
-  ["CapLOX II Pedicle Screw System", "ortho-implants", "Titanium alloy spinal fixation system for advanced orthopedic procedures.", "/images/ortho-implants/CapLOX II Pedicle Screw System.jpg", true],
-  ["TowerLOX MIS Pedicle Screw System", "ortho-implants", "Minimally invasive spinal solution for surgeon-led implant programs.", "/images/ortho-implants/TowerLOX MIS Pedicle Screw System.jpg", false],
-  ["Locked Compression Plates", "ortho-implants", "Bone plate systems in stainless steel and titanium options.", "/images/ortho-implants/1_5MM Safety Lock Strut Plate.jpg", true],
-  ["Cannulated and Cancellous Screws", "ortho-implants", "Precision screws for trauma and bone fixation applications.", "/images/ortho-implants/13ea40df965dcbd9c546c03033808a0b.jpg", false],
-  ["Proximal Humerus Plate", "ortho-implants", "Periarticular locking plate system for shoulder trauma cases.", "/images/ortho-implants/Safety Lock Periarticular Proximal Humerus Plate.jpg", false]
-].map(([name, category, shortDescription, imageUrl, featured], sortOrder) => ({
-  name,
-  category,
-  shortDescription,
-  imageUrl,
-  featured,
-  sortOrder,
-  slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
-  description: `${shortDescription} JD2 Meditech supports hospitals with product selection, quotation guidance, and dependable supply coordination.`,
-  specifications: ["ISO quality process", "Hospital procurement support", "Warranty and service guidance"]
-}));
+  { name: "Hamilton Ventilator", slug: "hamilton-ventilator", category: "ventilators", shortDescription: "Advanced ICU ventilation with multiple modes and monitoring.", description: "ICU ventilator for reliable critical care respiratory support.", imageUrl: "/images/ventils/Hamilton-Ventillator.jpg", featured: true, sortOrder: 1 },
+  { name: "Portable Ventilator", slug: "portable-ventilator", category: "ventilators", shortDescription: "Compact respiratory support for transport and mobile ICU use.", description: "Transport-ready ventilation support for emergency movement and mobile care.", imageUrl: "/images/ventils/portable-ventilator.jpg", featured: true, sortOrder: 2 },
+  { name: "Infant Incubator", slug: "infant-incubator", category: "ventilators", shortDescription: "Temperature controlled neonatal intensive care system.", description: "Neonatal care system for temperature-controlled support in critical care settings.", imageUrl: "/images/ventils/Infant Incubator - Yanko Design.jpg", featured: false, sortOrder: 3 },
+  { name: "Defibrillator Monitor Defi 9", slug: "defibrillator-monitor-defi-9", category: "defibrillators", shortDescription: "Professional AED with integrated patient monitoring.", description: "Emergency response defibrillator with monitoring capability.", imageUrl: "/images/defibs/Meditech Defibrillator monitor Defi 9.jpg", featured: true, sortOrder: 1 },
+  { name: "Philips AED", slug: "philips-aed", category: "defibrillators", shortDescription: "Reliable automated external defibrillator for emergency care.", description: "AED support for hospitals, clinics, and emergency response locations.", imageUrl: "/images/defibs/CalmedEquipmentNewPhilipsAEDs.jpg", featured: true, sortOrder: 2 },
+  { name: "Compact Defibrillator", slug: "compact-defibrillator", category: "defibrillators", shortDescription: "Emergency cardiac care device for hospitals and clinics.", description: "Compact cardiac response device for emergency departments and clinical teams.", imageUrl: "/images/defibs/defebrillator2.jpg", featured: false, sortOrder: 3 },
+  { name: "CapLOX II Pedicle Screw System", slug: "caplox-ii-pedicle-screw-system", category: "ortho-implants", shortDescription: "Advanced spinal fixation system in titanium alloy.", description: "Spinal fixation system for surgeon-led implant programs.", imageUrl: "/images/ortho-implants/CapLOX II Pedicle Screw System.jpg", featured: true, sortOrder: 1 },
+  { name: "TowerLOX MIS Pedicle Screw System", slug: "towerlox-mis-pedicle-screw-system", category: "ortho-implants", shortDescription: "Minimally invasive spinal solution for advanced procedures.", description: "Minimally invasive pedicle screw system for advanced spine procedures.", imageUrl: "/images/ortho-implants/TowerLOX MIS Pedicle Screw System.jpg", featured: false, sortOrder: 2 },
+  { name: "Locked Compression Plates", slug: "locked-compression-plates", category: "ortho-implants", shortDescription: "Bone plate systems in stainless steel and titanium options.", description: "Bone plate systems for trauma and fixation requirements.", imageUrl: "/images/ortho-implants/1_5MM Safety Lock Strut Plate.jpg", featured: true, sortOrder: 3 }
+];
 
 const content = [
   {
-    page: "home",
-    section: "hero",
-    eyebrow: "Orthopedic implants and critical care equipment",
-    title: "JD2 Meditech Pvt. Ltd.",
-    body: "Manufacturer and exporter of orthopedic implants and supplier of dependable medical equipment for hospitals, clinics, and healthcare procurement teams.",
-    imageUrl: "/images/slider1.jpg",
-    ctaLabel: "Request Quote",
-    ctaUrl: "/quote",
-    sortOrder: 1
+    page: "certifications",
+    section: "quality-approvals",
+    eyebrow: "Quality assurance",
+    title: "ISO, ISI, NSIC Approved, WHO GMP",
+    body: "JD2 Meditech maintains quality-focused procurement and manufacturing workflows for medical equipment, implants, and clinical support products.",
+    sortOrder: 1,
+    active: true
   },
   {
-    page: "about",
-    section: "profile",
-    title: "Company Profile",
-    body: "JD2 Meditech Pvt. Ltd. has served the orthopedic market since 2017 with implants, instruments, and medical equipment solutions developed with clinical expertise and international quality standards.",
-    imageUrl: "/images/section3.jpg",
-    sortOrder: 1
-  },
-  {
-    page: "contact",
-    section: "address",
-    title: "Registered Address",
-    body: "20-1-113/A, Korlagunta Block-1, Korlagunta, Chittoor, Tirupati Urban, Andhra Pradesh, India - 517501",
-    sortOrder: 1
+    page: "certifications",
+    section: "compliance-support",
+    eyebrow: "Documentation",
+    title: "Certificates and compliance documents",
+    body: "Product-specific documentation and approval references are available to support purchase decisions.",
+    sortOrder: 2,
+    active: true
   }
 ];
 
-module.exports = { products, content };
+module.exports = { categories, products, content };
