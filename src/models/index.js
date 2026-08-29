@@ -74,7 +74,9 @@ const MediaAsset = sequelize.define("MediaAsset", {
   mimeType: { type: DataTypes.STRING },
   size: { type: DataTypes.INTEGER },
   altText: { type: DataTypes.STRING },
-  folder: { type: DataTypes.STRING, defaultValue: "uploads" }
+  folder: { type: DataTypes.STRING, defaultValue: "uploads" },
+  checksum: { type: DataTypes.STRING, unique: true },
+  productId: { type: DataTypes.INTEGER, unique: true, allowNull: true }
 });
 
 module.exports = {

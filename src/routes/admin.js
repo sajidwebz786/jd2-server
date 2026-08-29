@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const slugify = require("slugify");
 const { v2: cloudinary } = require("cloudinary");
 const requireAuth = require("../middleware/auth");
@@ -37,12 +38,22 @@ const upload = multer({
   }
 });
 
-function uploadToCloudinary(file) {
+function normalizeCloudinaryFolder(value) {
+  const parts = String(value || "images")
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((part) => slugify(part, { lower: true, strict: true }))
+    .filter(Boolean);
+  return parts.join("/") || "images";
+}
+
+function uploadToCloudinary(file, requestedFolder = "images") {
   return new Promise((resolve, reject) => {
     const publicId = slugify(path.basename(file.originalname, path.extname(file.originalname)), { lower: true, strict: true });
+    const folder = normalizeCloudinaryFolder(requestedFolder);
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: "jd2-meditech",
+        folder,
         public_id: `${Date.now()}-${publicId}`,
         resource_type: "image"
       },
@@ -77,7 +88,7 @@ router.get("/dashboard", async (req, res) => {
   res.json({ products, quotes, enquiries, media });
 });
 
-function crud(model) {
+function crud(model, options = {}) {
   const api = express.Router();
   api.get("/", async (req, res) => res.json(await model.findAll({ order: [["createdAt", "DESC"]] })));
   api.post("/", async (req, res) => res.status(201).json(await model.create(req.body)));
@@ -90,13 +101,16 @@ function crud(model) {
   api.delete("/:id", async (req, res) => {
     const item = await model.findByPk(req.params.id);
     if (!item) return res.status(404).json({ message: "Not found" });
+    if (options.beforeDelete) await options.beforeDelete(item);
     await item.destroy();
     return res.json({ message: "Deleted" });
   });
   return api;
 }
 
-router.use("/products", crud(Product));
+router.use("/products", crud(Product, {
+  beforeDelete: async (product) => MediaAsset.update({ productId: null }, { where: { productId: product.id } })
+}));
 router.use("/categories", crud(Category));
 router.use("/content", crud(PageContent));
 router.use("/quotes", crud(QuoteRequest));
@@ -105,8 +119,15 @@ router.use("/enquiries", crud(Enquiry));
 router.post("/media", upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Image file is required" });
+    const fileBytes = useCloudinary ? req.file.buffer : fs.readFileSync(req.file.path);
+    const checksum = crypto.createHash("md5").update(fileBytes).digest("hex");
+    const duplicate = await MediaAsset.findOne({ where: { checksum } });
+    if (duplicate) {
+      if (!useCloudinary && req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(409).json({ message: "This image already exists in the gallery", asset: duplicate });
+    }
     if (useCloudinary) {
-      const result = await uploadToCloudinary(req.file);
+      const result = await uploadToCloudinary(req.file, req.body.folder);
       const asset = await MediaAsset.create({
         title: req.body.title || req.file.originalname,
         filename: result.public_id,
@@ -114,7 +135,8 @@ router.post("/media", upload.single("image"), async (req, res) => {
         mimeType: req.file.mimetype,
         size: req.file.size,
         altText: req.body.altText || "",
-        folder: "cloudinary"
+        folder: normalizeCloudinaryFolder(req.body.folder),
+        checksum
       });
       return res.status(201).json(asset);
     }
@@ -126,7 +148,8 @@ router.post("/media", upload.single("image"), async (req, res) => {
       mimeType: req.file.mimetype,
       size: req.file.size,
       altText: req.body.altText || "",
-      folder: "uploads"
+      folder: "uploads",
+      checksum
     });
     return res.status(201).json(asset);
   } catch (error) {
@@ -134,6 +157,126 @@ router.post("/media", upload.single("image"), async (req, res) => {
   }
 });
 
-router.get("/media", async (req, res) => res.json(await MediaAsset.findAll({ order: [["createdAt", "DESC"]] })));
+router.post("/media/bulk", upload.array("images", 50), async (req, res) => {
+  const files = req.files || [];
+  if (!files.length) return res.status(400).json({ message: "At least one image file is required" });
+
+  const uploaded = [];
+  const skipped = [];
+  const failed = [];
+  for (const file of files) {
+    try {
+      const fileBytes = useCloudinary ? file.buffer : fs.readFileSync(file.path);
+      const checksum = crypto.createHash("md5").update(fileBytes).digest("hex");
+      const duplicate = await MediaAsset.findOne({ where: { checksum } });
+      if (duplicate) {
+        if (!useCloudinary && file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        skipped.push({ name: file.originalname, reason: "duplicate", asset: duplicate });
+        continue;
+      }
+
+      let values;
+      if (useCloudinary) {
+        const result = await uploadToCloudinary(file, req.body.folder);
+        values = {
+          title: file.originalname, filename: result.public_id, url: result.secure_url,
+          mimeType: file.mimetype, size: file.size, altText: "", folder: normalizeCloudinaryFolder(req.body.folder), checksum
+        };
+      } else {
+        values = {
+          title: file.originalname, filename: file.filename, url: `/uploads/${file.filename}`,
+          mimeType: file.mimetype, size: file.size, altText: "", folder: "uploads", checksum
+        };
+      }
+      uploaded.push(await MediaAsset.create(values));
+    } catch (error) {
+      failed.push({ name: file.originalname, reason: error.message });
+    }
+  }
+  return res.status(uploaded.length ? 201 : 200).json({ uploaded, skipped, failed });
+});
+
+async function syncCloudinaryGallery() {
+  if (!useCloudinary) return;
+  let nextCursor;
+  do {
+    const result = await cloudinary.api.resources({
+      type: "upload",
+      resource_type: "image",
+      max_results: 500,
+      ...(nextCursor ? { next_cursor: nextCursor } : {})
+    });
+    for (const resource of result.resources || []) {
+    const publicIdFolder = path.posix.dirname(resource.public_id);
+    const resourceFolder = resource.asset_folder || (publicIdFolder === "." ? "images" : publicIdFolder);
+    const cloudChecksum = resource.etag || null;
+    const existing = await MediaAsset.findOne({
+      where: cloudChecksum
+        ? { [require("sequelize").Op.or]: [{ filename: resource.public_id }, { checksum: cloudChecksum }] }
+        : { filename: resource.public_id }
+    });
+    if (existing) {
+      const updates = {};
+      if (existing.url !== resource.secure_url) updates.url = resource.secure_url;
+      if (existing.folder !== resourceFolder) updates.folder = resourceFolder;
+      if (Object.keys(updates).length) await existing.update(updates);
+      continue;
+    }
+    await MediaAsset.findOrCreate({
+      where: { filename: resource.public_id },
+      defaults: {
+        title: path.basename(resource.public_id),
+        url: resource.secure_url,
+        mimeType: `image/${resource.format}`,
+        size: resource.bytes,
+        altText: "",
+        folder: resourceFolder,
+        checksum: cloudChecksum
+      }
+    });
+    }
+    nextCursor = result.next_cursor;
+  } while (nextCursor);
+}
+
+router.get("/media", async (req, res) => {
+  try {
+    await syncCloudinaryGallery();
+    return res.json(await MediaAsset.findAll({ order: [["createdAt", "DESC"]] }));
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to load Cloudinary gallery", detail: error.message });
+  }
+});
+
+router.get("/media-folders", async (req, res) => {
+  try {
+    const assets = await MediaAsset.findAll({ attributes: ["folder"] });
+    const folders = [...new Set(assets.map((asset) => asset.folder).filter(Boolean))].sort();
+    return res.json(folders);
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to load Cloudinary folders", detail: error.message });
+  }
+});
+
+router.post("/media/:id/attach", async (req, res) => {
+  const asset = await MediaAsset.findByPk(req.params.id);
+  const product = await Product.findByPk(req.body.productId);
+  if (!asset || !product) return res.status(404).json({ message: "Image or product not found" });
+  if (asset.productId && asset.productId !== product.id) return res.status(409).json({ message: "This image is already attached to another product" });
+  const existing = await MediaAsset.findOne({ where: { productId: product.id } });
+  if (existing && existing.id !== asset.id) return res.status(409).json({ message: "This product already has a Cloudinary image attached" });
+  await asset.update({ productId: product.id });
+  await product.update({ imageUrl: asset.url });
+  return res.json({ asset, product });
+});
+
+router.post("/media/:id/detach", async (req, res) => {
+  const asset = await MediaAsset.findByPk(req.params.id);
+  if (!asset) return res.status(404).json({ message: "Image not found" });
+  const product = asset.productId ? await Product.findByPk(asset.productId) : null;
+  if (product && product.imageUrl === asset.url) await product.update({ imageUrl: null });
+  await asset.update({ productId: null });
+  return res.json({ asset, product });
+});
 
 module.exports = router;
