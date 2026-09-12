@@ -90,13 +90,23 @@ router.get("/dashboard", async (req, res) => {
 
 function crud(model, options = {}) {
   const api = express.Router();
+  if (options.validate) api.use(async (req, res, next) => {
+    if (!["POST", "PUT"].includes(req.method)) return next();
+    try { await options.validate(req.body, req.params); return next(); }
+    catch (error) { return res.status(400).json({ message: error.message }); }
+  });
   api.get("/", async (req, res) => res.json(await model.findAll({ order: [["createdAt", "DESC"]] })));
-  api.post("/", async (req, res) => res.status(201).json(await model.create(req.body)));
+  api.post("/", async (req, res) => {
+    try { return res.status(201).json(await model.create(req.body)); }
+    catch (error) { return res.status(error.name === "SequelizeUniqueConstraintError" ? 409 : 400).json({ message: "Unable to save. Check required fields and use a unique key." }); }
+  });
   api.put("/:id", async (req, res) => {
+    try {
     const item = await model.findByPk(req.params.id);
     if (!item) return res.status(404).json({ message: "Not found" });
     await item.update(req.body);
     return res.json(item);
+    } catch (error) { return res.status(error.name === "SequelizeUniqueConstraintError" ? 409 : 400).json({ message: "Unable to update. Check required fields and use a unique key." }); }
   });
   api.delete("/:id", async (req, res) => {
     const item = await model.findByPk(req.params.id);
@@ -112,7 +122,17 @@ router.use("/products", crud(Product, {
   beforeDelete: async (product) => MediaAsset.update({ productId: null }, { where: { productId: product.id } })
 }));
 router.use("/categories", crud(Category));
-router.use("/content", crud(PageContent));
+router.use("/content", crud(PageContent, {
+  validate: async (body) => {
+    if (!["marquee", "reviews"].includes(body.page)) return;
+    if (typeof body.title !== "string" || !body.title.trim() || typeof body.section !== "string" || !body.section.trim()) throw new Error("Title and unique section key are required.");
+    if (body.page === "marquee") {
+      if (typeof body.imageUrl !== "string" || !/^(https:\/\/|\/(?!\/))/.test(body.imageUrl)) throw new Error("Use an HTTPS or local image URL.");
+      if (typeof body.ctaUrl !== "string" || !/^\/products(?:\/[a-z0-9-]+)*(?:\?[^\s]*)?$/.test(body.ctaUrl)) throw new Error("Use a product link such as /products/ortho-implants.");
+    }
+    if (body.page === "reviews" && (typeof body.body !== "string" || !body.body.trim())) throw new Error("Review text is required.");
+  }
+}));
 router.use("/quotes", crud(QuoteRequest));
 router.use("/enquiries", crud(Enquiry));
 

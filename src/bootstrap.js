@@ -30,6 +30,20 @@ async function bootstrapDefaults() {
   for (const item of content) {
     await PageContent.findOrCreate({ where: { page: item.page, section: item.section }, defaults: item });
   }
+
+  // Seed managed collections once. Deleted items stay deleted after a restart.
+  for (const collection of ["marquee", "reviews"]) {
+    const marker = { page: "system", section: `${collection}-initialized` };
+    if (!(await PageContent.findOne({ where: marker }))) {
+      await PageContent.sequelize.transaction(async (transaction) => {
+        const defaults = require(`../data/${collection}.json`);
+        for (const item of defaults) {
+          await PageContent.findOrCreate({ where: { page: item.page, section: item.section }, defaults: item, transaction });
+        }
+        await PageContent.create({ ...marker, title: `${collection} initialized`, active: false }, { transaction });
+      });
+    }
+  }
 }
 
 module.exports = bootstrapDefaults;

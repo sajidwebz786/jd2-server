@@ -1,0 +1,5 @@
+[
+  { "page": "reviews", "section": "procurement-team", "title": "Hospital Procurement Team", "eyebrow": "Tirupati", "body": "Responsive coordination, clear product guidance and dependable support for our medical equipment requirements.", "sortOrder": 0, "active": true },
+  { "page": "reviews", "section": "orthopedic-team", "title": "Orthopedic Care Team", "eyebrow": "Andhra Pradesh", "body": "A professional partner for orthopedic implant enquiries, documentation and timely supply coordination.", "sortOrder": 1, "active": true },
+  { "page": "reviews", "section": "healthcare-administrator", "title": "Healthcare Administrator", "eyebrow": "Chittoor", "body": "The team communicates clearly and supports procurement from enquiry through delivery and after-sales service.", "sortOrder": 2, "active": true }
+]

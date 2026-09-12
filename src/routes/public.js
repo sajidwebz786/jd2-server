@@ -2,6 +2,8 @@ const express = require("express");
 const { Category, Product, PageContent, QuoteRequest, Enquiry } = require("../models");
 
 const router = express.Router();
+const { sendContactMail } = require("../services/contactMail");
+const { contactHandler } = require("../services/contactEnquiry");
 
 router.get("/products", async (req, res) => {
   const where = { active: true };
@@ -31,9 +33,6 @@ router.post("/quotes", async (req, res) => {
   res.status(201).json({ message: "Quote request submitted", quote });
 });
 
-router.post("/enquiries", async (req, res) => {
-  const enquiry = await Enquiry.create(req.body);
-  res.status(201).json({ message: "Message submitted", enquiry });
-});
+router.post("/enquiries", contactHandler({ Enquiry, sendContactMail }));
 
 module.exports = router;

@@ -1,0 +1,92 @@
+[
+  {
+    "page": "marquee",
+    "section": "product-1",
+    "title": "OT Table",
+    "imageUrl": "/images/equipment/device3.jpg",
+    "ctaUrl": "/products/hospital-furniture",
+    "sortOrder": 0,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-2",
+    "title": "OT Lights",
+    "imageUrl": "/images/equipment/device4.jpg",
+    "ctaUrl": "/products/hospital-furniture",
+    "sortOrder": 1,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-3",
+    "title": "Patient Monitor",
+    "imageUrl": "/images/equipment/device1.jpg",
+    "ctaUrl": "/products/patient-monitor",
+    "sortOrder": 2,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-4",
+    "title": "Oxygen Concentrator",
+    "imageUrl": "/images/ventils/portable-ventilator.jpg",
+    "ctaUrl": "/products/respiratory-care",
+    "sortOrder": 3,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-5",
+    "title": "Spine Instrument Box",
+    "imageUrl": "/images/ortho-implants/CapLOX II Pedicle Screw System.jpg",
+    "ctaUrl": "/products/ortho-implants",
+    "sortOrder": 4,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-6",
+    "title": "Orthopedic Implant Systems",
+    "imageUrl": "/images/ortho-implants/ortho-tools.png",
+    "ctaUrl": "/products/ortho-implants",
+    "sortOrder": 5,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-7",
+    "title": "Hospital Bed & Furniture",
+    "imageUrl": "/images/section3.jpg",
+    "ctaUrl": "/products/hospital-furniture",
+    "sortOrder": 6,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-8",
+    "title": "TKR System",
+    "imageUrl": "/images/ortho-implants/Patella-star-lockibg-plate.png",
+    "ctaUrl": "/products/ortho-implants",
+    "sortOrder": 7,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-9",
+    "title": "THR System",
+    "imageUrl": "/images/ortho-implants/Manufacturer of CE - Orthopedic Implants _ Supplying Globally.jpg",
+    "ctaUrl": "/products/ortho-implants",
+    "sortOrder": 8,
+    "active": true
+  },
+  {
+    "page": "marquee",
+    "section": "product-10",
+    "title": "Gynaecological Measurement",
+    "imageUrl": "/images/equipment/device11.jpg",
+    "ctaUrl": "/products/hospital-equipment",
+    "sortOrder": 9,
+    "active": true
+  }
+]
