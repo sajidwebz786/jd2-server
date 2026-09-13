@@ -33,6 +33,7 @@ const PageContent = sequelize.define("PageContent", {
   page: { type: DataTypes.STRING, allowNull: false },
   section: { type: DataTypes.STRING, allowNull: false },
   title: { type: DataTypes.STRING, allowNull: false },
+  hospitalName: { type: DataTypes.STRING },
   eyebrow: { type: DataTypes.STRING },
   body: { type: DataTypes.TEXT },
   imageUrl: { type: DataTypes.STRING },
