@@ -9,6 +9,7 @@ const slugify = require("slugify");
 const { v2: cloudinary } = require("cloudinary");
 const requireAuth = require("../middleware/auth");
 const { AdminUser, Category, Product, PageContent, QuoteRequest, Enquiry, MediaAsset } = require("../models");
+const { buildResetToken, tokenExpiry, sendPasswordResetEmail, sendPasswordChangedNotification } = require("../services/passwordMail");
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, "..", "..", "uploads");
@@ -76,6 +77,45 @@ router.post("/login", async (req, res) => {
   res.json({ token, admin: { id: admin.id, name: admin.name, email: admin.email } });
 });
 
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) {
+    return res.status(400).json({ message: "A valid email address is required" });
+  }
+  const admin = await AdminUser.findOne({ where: { email: email.toLowerCase() } });
+  if (!admin) {
+    return res.json({ message: "If that admin email exists, a reset link has been sent." });
+  }
+  const token = buildResetToken();
+  await admin.update({ resetToken: token, resetTokenExpiry: tokenExpiry() });
+  try {
+    await sendPasswordResetEmail(admin, token);
+    return res.json({ message: "If that admin email exists, a reset link has been sent." });
+  } catch (error) {
+    console.error(`Password reset email delivery failed for admin ${admin.id}:`, error.message);
+    return res.status(503).json({ message: "Email delivery is not available. Configure SMTP and try again, or contact the server administrator." });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword || newPassword.length < 8) {
+    return res.status(400).json({ message: "Token and a new password of at least 8 characters are required" });
+  }
+  const admin = await AdminUser.findOne({ where: { resetToken: token } });
+  if (!admin || !admin.resetTokenExpiry || new Date(admin.resetTokenExpiry) < new Date()) {
+    return res.status(401).json({ message: "This reset link has expired. Request a new password reset." });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await admin.update({ passwordHash, resetToken: null, resetTokenExpiry: null });
+  try {
+    await sendPasswordChangedNotification(admin);
+  } catch (error) {
+    console.error(`Password changed notification failed for admin ${admin.id}:`, error.message);
+  }
+  return res.json({ message: "Password has been reset. You can now sign in with your new password." });
+});
+
 router.use(requireAuth);
 
 router.get("/dashboard", async (req, res) => {
@@ -86,6 +126,25 @@ router.get("/dashboard", async (req, res) => {
     MediaAsset.count()
   ]);
   res.json({ products, quotes, enquiries, media });
+});
+
+router.put("/password", async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword || newPassword.length < 8) {
+    return res.status(400).json({ message: "Current password and a new password of at least 8 characters are required" });
+  }
+  const admin = await AdminUser.findByPk(req.admin.id);
+  if (!admin || !(await bcrypt.compare(currentPassword, admin.passwordHash))) {
+    return res.status(401).json({ message: "Current password is incorrect" });
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await admin.update({ passwordHash });
+  try {
+    await sendPasswordChangedNotification(admin);
+  } catch (error) {
+    console.error(`Password changed notification failed for admin ${admin.id}:`, error.message);
+  }
+  return res.json({ message: "Password updated successfully." });
 });
 
 function crud(model, options = {}) {
@@ -275,6 +334,43 @@ router.get("/media-folders", async (req, res) => {
     return res.json(folders);
   } catch (error) {
     return res.status(500).json({ message: "Unable to load Cloudinary folders", detail: error.message });
+  }
+});
+
+router.put("/media/:id", async (req, res) => {
+  try {
+    const asset = await MediaAsset.findByPk(req.params.id);
+    if (!asset) return res.status(404).json({ message: "Image not found" });
+    const title = String(req.body.title || "").trim();
+    if (!title) return res.status(400).json({ message: "Image title is required" });
+    await asset.update({
+      title,
+      altText: String(req.body.altText || "").trim(),
+      folder: normalizeCloudinaryFolder(req.body.folder || asset.folder)
+    });
+    return res.json(asset);
+  } catch (error) {
+    return res.status(400).json({ message: "Unable to update image details", detail: error.message });
+  }
+});
+
+router.delete("/media/:id", async (req, res) => {
+  try {
+    const asset = await MediaAsset.findByPk(req.params.id);
+    if (!asset) return res.status(404).json({ message: "Image not found" });
+    const referencedByContent = await PageContent.count({ where: { imageUrl: asset.url } });
+    if (asset.productId || referencedByContent) {
+      return res.status(409).json({ message: "This image is in use. Unmap it from its product or replace it in Website Content before deleting it." });
+    }
+    if (useCloudinary) await cloudinary.uploader.destroy(asset.filename, { resource_type: "image" });
+    else if (asset.url.startsWith("/uploads/")) {
+      const localPath = path.join(uploadDir, path.basename(asset.url));
+      if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+    }
+    await asset.destroy();
+    return res.json({ message: "Image deleted" });
+  } catch (error) {
+    return res.status(400).json({ message: "Unable to delete image", detail: error.message });
   }
 });
 

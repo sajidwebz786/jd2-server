@@ -4,7 +4,9 @@ const sequelize = require("../config/database");
 const AdminUser = sequelize.define("AdminUser", {
   name: { type: DataTypes.STRING, allowNull: false, defaultValue: "JD2 Admin" },
   email: { type: DataTypes.STRING, allowNull: false, unique: true },
-  passwordHash: { type: DataTypes.STRING, allowNull: false }
+  passwordHash: { type: DataTypes.STRING, allowNull: false },
+  resetToken: { type: DataTypes.STRING },
+  resetTokenExpiry: { type: DataTypes.DATE }
 });
 
 const Product = sequelize.define("Product", {

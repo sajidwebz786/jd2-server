@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "node --test src/services/contactEnquiry.test.js",
+    "test": "node --test src/services/contactEnquiry.test.js src/services/passwordMail.test.js",
     "seed": "node src/seed.js",
     "upload:portal-images": "node scripts/uploadPortalImages.js",
     "check:admin": "node src/checkAdmin.js"

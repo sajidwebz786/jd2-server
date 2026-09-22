@@ -16,7 +16,10 @@ async function bootstrapDefaults() {
     defaults: { name: "JD2 Admin", passwordHash }
   });
   if (!created) {
-    await admin.update({ passwordHash });
+    const matchesConfigured = await bcrypt.compare(password, admin.passwordHash);
+    if (!matchesConfigured) {
+      await admin.update({ passwordHash });
+    }
   }
 
   for (const category of categories) {
