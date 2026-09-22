@@ -15,7 +15,10 @@ function createTransport(env = process.env) {
     auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
-    socketTimeout: 20000
+    socketTimeout: 20000,
+    tls: {
+      rejectUnauthorized: env.SMTP_TLS_REJECT_UNAUTHORIZED !== "0"
+    }
   });
 }
 
